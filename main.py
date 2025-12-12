@@ -1,18 +1,32 @@
-from services import create_user_service, login_user_service
+from auth.auth_services import create_user_service, login_user_service, logout_user_service
 import inquirer
+from state.auth_state import user_state
 
-options = [
-    inquirer.List(
-        "action",
-        choices=["register_user", "login_user"]
-    )
-]
+state = user_state()
 
-choosen = inquirer.prompt(options)
+while True:
+    user = state.get_user()
 
-action_map ={
-"register_user": create_user_service,
-"login_user": login_user_service
-}
+    if user:
+        choices = ["logout_user"]
+    else:
+        choices = ["register_user", "login_user"]
 
-action_map[choosen["action"]]()
+    questions = [
+        inquirer.List(
+            "action",
+            choices=choices,
+            message="Select an action:"
+        )
+    ]
+
+    answer = inquirer.prompt(questions)
+    action = answer["action"]
+
+    action_map = {
+        "register_user": create_user_service,
+        "login_user": login_user_service,
+        "logout_user": logout_user_service,
+    }
+
+    action_map[action]()  
