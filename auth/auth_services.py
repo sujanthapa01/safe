@@ -1,21 +1,57 @@
 from config import auth 
 from state.auth_state import user_state
 from colorama import init, Fore, Style
-
+from db.db_services import create_profile
+import time
+from main import action
+from config import db
 init()
 
-def user_credientials_input() -> tuple[str, str]:
-    """Prompt the user for email and password input.""" 
+
+def is_username_taken(username: str) -> bool:
+    result = db.child("profiles").child(username).get()
+    return result.val() is not None
+
+def user_credientials_input(action: str):
+    """Prompt the user for credentials safely"""
+
     email = input("Enter your email: ")
     password = input("Enter your password: ")
-    return email, password
+
+    if action == "register_user":
+        while True:
+            username = input("Make a username: ").lower().strip()
+
+            if is_username_taken(username):
+                print(f"'@{username}' already exists. Try again.")
+            else:
+                break
+
+        return {
+            "email": email,
+            "password": password,
+            "username": username
+        }
+
+    return {
+        "email": email,
+        "password": password
+    }
 
 
-def create_user_service() -> dict | None:
+def create_user_service(username) -> dict | None:
     """Create a new user with the given email and password."""
+    created_at = int(time.time())
     try:
       email, password = user_credientials_input()
       user = auth.create_user_with_email_and_password(email, password)
+      uid = user["localId"]
+      create_profile(uid,{ 
+          "email" : email,
+          "username" : username,
+          "created_at" : created_at
+
+      })
       return user
     except Exception as e:
         print(f"error creating user {e}")
